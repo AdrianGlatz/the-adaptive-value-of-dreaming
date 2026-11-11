@@ -1,3 +1,4 @@
+import random
 
 directions = {
     "up": (0, -1),
@@ -31,7 +32,14 @@ class Organism:
                 self.alive = False
                 return
 
-            if world.grid[self.y, self.x] == 1:
+            if (self.x, self.y) in world.foods:
                 self.energy += 10
-                world.grid[self.y, self.x] = 0
+                world.foods.remove((self.x, self.y))
+
+
+    def random_move(self, world):
+        if self.energy <= 0 or not self.alive:
+            return
         
+        direction = random.choice(list(directions.keys()))
+        self.move(direction, world)
