@@ -40,7 +40,9 @@ def visualize_world(simulation):
         dt = clock.tick(60) / 1000.0
         elapsed += dt
         if elapsed >= interval:
-            simulation.step()
+            if any(organism.alive for organism in organisms):
+                simulation.step()
+
             elapsed -= interval
     pygame.quit()
 

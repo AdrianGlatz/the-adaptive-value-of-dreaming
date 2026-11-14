@@ -1,4 +1,6 @@
 
+gamma = 0.99
+
 class Simulation:
     def __init__(self, world, organisms):
         self.world = world
@@ -6,4 +8,4 @@ class Simulation:
 
     def step(self):
         for organism in self.organisms:
-            organism.random_move(self.world)
+            organism.thoughtful_moment(self.world, organism.range, gamma)
