@@ -40,12 +40,10 @@ def visualize_world(simulation):
         dt = clock.tick(60) / 1000.0
         elapsed += dt
         if elapsed >= interval:
-            if any(organism.alive for organism in organisms):
-                simulation.step()
+            
+            simulation.step()
 
             elapsed -= interval
 
-        if len(world.foods) <= 100:
-            world.generate_food(50)
     pygame.quit()
 

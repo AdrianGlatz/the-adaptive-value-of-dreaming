@@ -18,3 +18,6 @@ class Simulation:
             )
 
         self.steps += 1
+
+        if len(self.world.foods) <= 240:
+            self.world.generate_food(10)

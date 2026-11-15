@@ -11,6 +11,15 @@ directions = {
     "right": (1, 0)
 }
 
+MOVE_REWARD = -0.05
+BORDER_REWARD = -0.6
+FOOD_REWARD = 2.0
+DEATH_REWARD = -3.0
+
+MOVE_ENERGY = 1
+FOOD_ENERGY = 10
+MAX_ENERGY = 100
+
 class Experience(NamedTuple):
     state: object
     action: int
@@ -22,7 +31,7 @@ class Organism:
     def __init__(self, position):
         self.x = position[0]
         self.y = position[1]
-        self.energy = 100
+        self.energy = MAX_ENERGY
         self.alive = True
         self.brain = Brain()
         self.range = 2
@@ -31,7 +40,7 @@ class Organism:
 
     def move(self, direction, world):
         if self.energy < 0 or not self.alive:
-            return -1
+            return DEATH_REWARD
         
         dx, dy = directions[direction]
         new_x = self.x + dx
@@ -42,24 +51,27 @@ class Organism:
             self.y = new_y
 
 
-            self.energy -= 0
-            if self.energy <= 0:
-                self.alive = False
-                return -1
+            self.energy -= MOVE_ENERGY
             
             if (self.x, self.y) in world.foods:
-                self.energy += 10
+                self.energy = min(MAX_ENERGY, self.energy + FOOD_ENERGY)
                 world.foods.remove((self.x, self.y))
-                return 1
+                reward = FOOD_REWARD
             else:
-                return -0.2
+                reward = MOVE_REWARD
 
-        else:
-            self.energy -= 1
             if self.energy <= 0:
                 self.alive = False
-                return -1
-            return -0.4
+                return DEATH_REWARD
+
+            return reward
+
+        else:
+            self.energy -= MOVE_ENERGY
+            if self.energy <= 0:
+                self.alive = False
+                return DEATH_REWARD
+            return BORDER_REWARD
 
 
     def random_move(self, world):
@@ -74,7 +86,7 @@ class Organism:
         if self.energy < 0 or not self.alive:
             return None
         situation = world.get_perception(self, radius)
-        situation.append(self.energy/100)
+        situation.append(self.energy/MAX_ENERGY)
         return situation
 
 
@@ -115,7 +127,7 @@ class Organism:
         self.x = self.start_position[0]
         self.y = self.start_position[1]
 
-        self.energy = 100
+        self.energy = MAX_ENERGY
 
         self.alive = True
 
