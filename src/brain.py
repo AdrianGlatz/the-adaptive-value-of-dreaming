@@ -31,19 +31,32 @@ class Brain(nn.Module):
         return action
 
 
-    def train_batch(self, batch, gamma):
-        losses = []
-        for experience in batch:
-            predicted_q_values = self(experience.state)
-            with torch.no_grad():
-                if experience.done:                    
-                    target_q_values = experience.reward
-                else:
-                    target_q_values = experience.reward + gamma * torch.max(self(experience.next_state))
-            loss = (predicted_q_values[experience.action] - target_q_values) ** 2
-            losses.append(loss)
 
-        average_loss = torch.stack(losses).mean()
+
+    
+    def train_batch(self, batch, gamma):
+        states = torch.stack([exp.state for exp in batch])
+        next_states = torch.stack([exp.next_state for exp in batch])
+
+        actions = torch.tensor([exp.action for exp in batch], dtype=torch.long)
+        rewards = torch.tensor([exp.reward for exp in batch], dtype=torch.float32)
+        dones = torch.tensor([exp.done for exp in batch], dtype=torch.bool)
+
+        predicted_q_values = self(states)
+        selected_q_values = predicted_q_values.gather(
+            1, actions.unsqueeze(1)
+        ).squeeze(1)
+
+        with torch.no_grad():
+            next_q_values = self(next_states)
+            max_next_q = next_q_values.max(dim=1).values
+            targets = rewards + gamma * max_next_q * (~dones).float()
+
+        loss = ((selected_q_values - targets) ** 2).mean()
+
+        # Update network weights
         self.optimizer.zero_grad()
-        average_loss.backward()
+        loss.backward()
         self.optimizer.step()
+
+        return loss.item()

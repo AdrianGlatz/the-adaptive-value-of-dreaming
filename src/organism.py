@@ -11,8 +11,6 @@ directions = {
     "right": (1, 0)
 }
 
-epsilon = 0.1  # Exploration rate
-
 class Experience(NamedTuple):
     state: object
     action: int
@@ -29,6 +27,7 @@ class Organism:
         self.brain = Brain()
         self.range = 2
         self.experience_buffer = deque(maxlen=1000)
+        self.start_position = position
 
     def move(self, direction, world):
         if self.energy < 0 or not self.alive:
@@ -42,7 +41,8 @@ class Organism:
             self.x = new_x
             self.y = new_y
 
-            self.energy -= 1
+
+            self.energy -= 0
             if self.energy <= 0:
                 self.alive = False
                 return -1
@@ -52,14 +52,14 @@ class Organism:
                 world.foods.remove((self.x, self.y))
                 return 1
             else:
-                return -0.1
+                return -0.2
 
         else:
             self.energy -= 1
             if self.energy <= 0:
                 self.alive = False
                 return -1
-            return -0.2
+            return -0.4
 
 
     def random_move(self, world):
@@ -78,7 +78,7 @@ class Organism:
         return situation
 
 
-    def thoughtful_move(self, world, radius):
+    def thoughtful_move(self, world, radius, epsilon):
         if self.energy <= 0 or not self.alive:
             return
         brain = self.brain
@@ -100,8 +100,8 @@ class Organism:
         return experience
 
 
-    def thoughtful_moment(self, world, radius, gamma):
-        experience = self.thoughtful_move(world, radius)
+    def thoughtful_moment(self, world, radius, gamma, epsilon):
+        experience = self.thoughtful_move(world, radius, epsilon)
 
         if experience is None:
             return
@@ -109,4 +109,16 @@ class Organism:
         if len(self.experience_buffer) >= 32:
             batch = random.sample(list(self.experience_buffer), 32)
             self.brain.train_batch(batch, gamma)
+
+
+    def reset(self):
+        self.x = self.start_position[0]
+        self.y = self.start_position[1]
+
+        self.energy = 100
+
+        self.alive = True
+
+
+
 

@@ -44,5 +44,8 @@ def visualize_world(simulation):
                 simulation.step()
 
             elapsed -= interval
+
+        if len(world.foods) <= 100:
+            world.generate_food(50)
     pygame.quit()
 
