@@ -3,6 +3,7 @@ import torch
 from brain import Brain
 from typing import NamedTuple
 from collections import deque
+import constants as C
 
 directions = {
     "up": (0, -1),
@@ -11,10 +12,7 @@ directions = {
     "right": (1, 0)
 }
 
-MOVE_REWARD = -0.05
-BORDER_REWARD = -0.6
-FOOD_REWARD = 2.0
-DEATH_REWARD = -3.0
+
 
 MOVE_ENERGY = 1
 FOOD_ENERGY = 10
@@ -40,7 +38,7 @@ class Organism:
 
     def move(self, direction, world):
         if self.energy < 0 or not self.alive:
-            return DEATH_REWARD
+            return C.DEATH_REWARD
         
         dx, dy = directions[direction]
         new_x = self.x + dx
@@ -56,13 +54,13 @@ class Organism:
             if (self.x, self.y) in world.foods:
                 self.energy = min(MAX_ENERGY, self.energy + FOOD_ENERGY)
                 world.foods.remove((self.x, self.y))
-                reward = FOOD_REWARD
+                reward = C.FOOD_REWARD
             else:
-                reward = MOVE_REWARD
+                reward = C.MOVE_REWARD
 
             if self.energy <= 0:
                 self.alive = False
-                return DEATH_REWARD
+                return C.DEATH_REWARD
 
             return reward
 
@@ -70,8 +68,8 @@ class Organism:
             self.energy -= MOVE_ENERGY
             if self.energy <= 0:
                 self.alive = False
-                return DEATH_REWARD
-            return BORDER_REWARD
+                return C.DEATH_REWARD
+            return C.BORDER_REWARD
 
 
     def random_move(self, world):
@@ -109,18 +107,19 @@ class Organism:
 
         experience = Experience(state=situation_tensor, action=output, reward=reward, next_state=next_situation_tensor, done=not self.alive)
         self.experience_buffer.append(experience)
-        return experience
+        return experience, reward
 
 
-    def thoughtful_moment(self, world, radius, gamma, epsilon):
-        experience = self.thoughtful_move(world, radius, epsilon)
+    def thoughtful_moment(self, world, radius, gamma, epsilon, training=True):
+        experience, reward = self.thoughtful_move(world, radius, epsilon)
 
         if experience is None:
-            return
+            return reward
 
-        if len(self.experience_buffer) >= 32:
+        if len(self.experience_buffer) >= 32 and training:
             batch = random.sample(list(self.experience_buffer), 32)
             self.brain.train_batch(batch, gamma)
+            return reward
 
 
     def reset(self):
