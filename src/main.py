@@ -1,10 +1,13 @@
-﻿from simulation import create_simulation
+﻿from config import ExperimentConfig
+from simulation import create_simulation
 import visualisation
 
 
 def main():
-    simulation = create_simulation()
-    for step in range(10_000):
+    config = ExperimentConfig()
+    simulation = create_simulation(config)
+
+    for step in range(config.training_steps):
         simulation.step()
 
         if (step + 1) % 1_000 == 0:

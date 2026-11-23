@@ -4,13 +4,13 @@ import torch
 import torch.nn as nn
 
 class Brain(nn.Module):
-    def __init__(self):
+    def __init__(self, config, input_size):
         super().__init__()
 
-        self.layer1 = nn.Linear(26, 64)
+        self.layer1 = nn.Linear(input_size, 64)
         self.layer2 = nn.Linear(64, 32)
         self.output = nn.Linear(32, 4)
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=config.learning_rate)
 
     def forward(self, x):
         x = torch.relu(self.layer1(x))

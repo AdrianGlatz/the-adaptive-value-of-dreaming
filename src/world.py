@@ -2,11 +2,11 @@ import numpy as np
 
 class World:
 
-    def __init__(self, height, width, seed=None):
+    def __init__(self, config, seed=None):
         self.name = "World"
-        self.height = height
-        self.width = width
-        self.grid = np.zeros((height, width), dtype=int)
+        self.height = config.height
+        self.width = config.width
+        self.grid = np.zeros((config.height, config.width), dtype=int)
         self.foods = set()
 
         self.seed = seed

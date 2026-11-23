@@ -3,7 +3,6 @@ import torch
 from brain import Brain
 from typing import NamedTuple
 from collections import deque
-import constants as C
 
 directions = {
     "up": (0, -1),
@@ -13,11 +12,6 @@ directions = {
 }
 
 
-
-MOVE_ENERGY = 1
-FOOD_ENERGY = 10
-MAX_ENERGY = 100
-
 class Experience(NamedTuple):
     state: object
     action: int
@@ -26,19 +20,24 @@ class Experience(NamedTuple):
     done: bool
 
 class Organism:
-    def __init__(self, position):
-        self.x = position[0]
-        self.y = position[1]
-        self.energy = MAX_ENERGY
-        self.alive = True
-        self.brain = Brain()
-        self.range = 2
-        self.experience_buffer = deque(maxlen=1000)
+    def __init__(self, position, config, dqn_config, reward_config):
+        self.config = config
+        self.dqn_config = dqn_config
+        self.reward_config = reward_config
+
+        self.x, self.y = position
         self.start_position = position
+        self.energy = config.max_energy
+        self.alive = True
+
+        self.range = config.perception_radius
+        input_size = (2 * config.perception_radius + 1) ** 2 + 1
+        self.brain = Brain(dqn_config, input_size)
+        self.experience_buffer = deque(maxlen=dqn_config.replay_capacity)
 
     def move(self, direction, world):
         if self.energy < 0 or not self.alive:
-            return C.DEATH_REWARD
+            return self.reward_config.death
         
         dx, dy = directions[direction]
         new_x = self.x + dx
@@ -49,27 +48,30 @@ class Organism:
             self.y = new_y
 
 
-            self.energy -= MOVE_ENERGY
+            self.energy -= self.config.move_energy
             
             if (self.x, self.y) in world.foods:
-                self.energy = min(MAX_ENERGY, self.energy + FOOD_ENERGY)
+                self.energy = min(
+                    self.config.max_energy, 
+                    self.energy + self.config.food_energy
+                )
                 world.foods.remove((self.x, self.y))
-                reward = C.FOOD_REWARD
+                reward = self.reward_config.food
             else:
-                reward = C.MOVE_REWARD
+                reward = self.reward_config.move
 
             if self.energy <= 0:
                 self.alive = False
-                return C.DEATH_REWARD
+                return self.reward_config.death
 
             return reward
 
         else:
-            self.energy -= MOVE_ENERGY
+            self.energy -= self.config.move_energy
             if self.energy <= 0:
                 self.alive = False
-                return C.DEATH_REWARD
-            return C.BORDER_REWARD
+                return self.reward_config.death
+            return self.reward_config.border
 
 
     def random_move(self, world):
@@ -84,7 +86,7 @@ class Organism:
         if self.energy < 0 or not self.alive:
             return None
         situation = world.get_perception(self, radius)
-        situation.append(self.energy/MAX_ENERGY)
+        situation.append(self.energy/self.config.max_energy)
         return situation
 
 
@@ -126,8 +128,8 @@ class Organism:
 
         experience, reward = result
 
-        if training and len(self.experience_buffer) >= 32:
-            batch = random.sample(list(self.experience_buffer), 32)
+        if training and len(self.experience_buffer) >= self.dqn_config.batch_size:
+            batch = random.sample(list(self.experience_buffer), self.dqn_config.batch_size)
             self.brain.train_batch(batch, gamma)
 
         return experience, reward
@@ -136,7 +138,7 @@ class Organism:
         self.x = self.start_position[0]
         self.y = self.start_position[1]
 
-        self.energy = MAX_ENERGY
+        self.energy = self.config.max_energy
 
         self.alive = True
 

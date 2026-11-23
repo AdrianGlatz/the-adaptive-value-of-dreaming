@@ -39,7 +39,7 @@ def visualize_world(simulation):
         elapsed += dt
         if elapsed >= interval:
             
-            simulation.step()
+            simulation.step(training=False)
 
             elapsed -= interval
 

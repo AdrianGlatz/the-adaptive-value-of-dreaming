@@ -2,7 +2,6 @@ import random
 import numpy as np
 import torch
 
-import constants as C
 from organism import Organism
 from simulation import Simulation
 from world import World
@@ -12,9 +11,9 @@ class Evaluation:
     def __init__(self, simulation):
         self.simulation = simulation
 
-    def evaluate_episode(self, simulation, max_steps=C.EVALUATION_STEPS):
-        if max_steps <= 0:
-            raise ValueError("max_steps must be positive")
+    def evaluate_episode(self, simulation, max_steps=None):
+        if max_steps is None:
+            max_steps = simulation.config.evaluation_steps
         if len(simulation.organisms) != 1:
             raise ValueError("Evaluation requires exactly one agent")
         agent = simulation.organisms[0]
@@ -35,7 +34,7 @@ class Evaluation:
             total_reward += reward
             steps += 1
 
-            if reward == C.FOOD_REWARD:
+            if reward == simulation.config.reward.food:
                 food_count += 1
 
         return {
@@ -45,9 +44,9 @@ class Evaluation:
             "died": not agent.alive
         }
 
-    def evaluate_agent(self, simulation, steps=C.EVALUATION_STEPS):
-        if steps <= 0:
-            raise ValueError("steps must be positive")
+    def evaluate_agent(self, simulation, steps=None):
+        if steps is None:
+            steps = simulation.config.evaluation_steps
         total_reward = 0
         food_count = 0
         death_count = 0
@@ -80,9 +79,9 @@ class Evaluation:
             "mean_survival": mean_survival
         }
 
-    def evaluate_multiple_seeds(self, organism, seeds, steps=C.EVALUATION_STEPS):
-        if steps <= 0:
-            raise ValueError("steps must be positive")
+    def evaluate_multiple_seeds(self, organism, seeds, steps=None):
+        if steps is None:
+            steps = self.simulation.config.evaluation_steps
         results = {}
 
         for seed in seeds:
@@ -90,22 +89,25 @@ class Evaluation:
             np.random.seed(seed)
             torch.manual_seed(seed)
 
-            world = World(
-                self.simulation.world.height,
-                self.simulation.world.width,
-                seed=seed
-            )
-            world.generate_food(C.INITIAL_FOOD)
+            world = World(self.simulation.config.world, seed=seed)
+            world.generate_food(self.simulation.config.world.initial_food)
 
-            agent = Organism(organism.start_position)
+            agent = Organism(
+                organism.start_position,
+                self.simulation.config.organism,
+                self.simulation.config.dqn,
+                self.simulation.config.reward
+            )
             agent.brain.load_state_dict(organism.brain.state_dict())
             agent.brain.eval()
 
-            test_simulation = Simulation(world, [agent])
-
-            results[seed] = self.evaluate_agent(
-                test_simulation, steps
+            test_simulation = Simulation(
+                world,
+                [agent],
+                self.simulation.config
             )
+
+            results[seed] = self.evaluate_agent(test_simulation, steps)
 
         return results
 
