@@ -88,39 +88,49 @@ class Organism:
         return situation
 
 
-    def thoughtful_move(self, world, radius, epsilon):
+    def thoughtful_move(self, world, radius, epsilon, training=True):
         if self.energy <= 0 or not self.alive:
-            return
-        brain = self.brain
+            return None
+
         situation = self.perceive(world, radius)
         situation_tensor = torch.tensor(situation, dtype=torch.float32)
-        output = brain.choose_action(situation_tensor, epsilon)
-        direction = list(directions.keys())[output]
-        reward = self.move(direction, world)
 
+        action = self.brain.choose_action(situation_tensor, epsilon)
+        direction = list(directions.keys())[action]
+
+        reward = self.move(direction, world)
         done = not self.alive
 
         if done:
-            next_situation_tensor = torch.zeros_like(situation_tensor)
+            next_state = torch.zeros_like(situation_tensor)
         else:
-            next_situation_tensor = torch.tensor(self.perceive(world, radius), dtype=torch.float32)
+            next_state = torch.tensor(
+                self.perceive(world, radius), dtype=torch.float32
+            )
 
-        experience = Experience(state=situation_tensor, action=output, reward=reward, next_state=next_situation_tensor, done=not self.alive)
-        self.experience_buffer.append(experience)
+        experience = Experience(
+            situation_tensor, action, reward, next_state, done
+        )
+
+        if training:
+            self.experience_buffer.append(experience)
+
         return experience, reward
 
 
     def thoughtful_moment(self, world, radius, gamma, epsilon, training=True):
-        experience, reward = self.thoughtful_move(world, radius, epsilon)
+        result = self.thoughtful_move(world, radius, epsilon, training)
 
-        if experience is None:
-            return reward
+        if result is None:
+            return None
 
-        if len(self.experience_buffer) >= 32 and training:
+        experience, reward = result
+
+        if training and len(self.experience_buffer) >= 32:
             batch = random.sample(list(self.experience_buffer), 32)
             self.brain.train_batch(batch, gamma)
-            return reward
 
+        return experience, reward
 
     def reset(self):
         self.x = self.start_position[0]

@@ -2,12 +2,16 @@ import numpy as np
 
 class World:
 
-    def __init__(self, height, width):
+    def __init__(self, height, width, seed=None):
         self.name = "World"
         self.height = height
         self.width = width
         self.grid = np.zeros((height, width), dtype=int)
         self.foods = set()
+
+        self.seed = seed
+        self.rng = np.random.default_rng(seed)
+
 
     def generate_food(self, amount):
         placed = 0
@@ -16,8 +20,8 @@ class World:
             raise ValueError("Not enough empty fields")
 
         while placed < amount:
-            x = np.random.randint(0, self.width)
-            y = np.random.randint(0, self.height)
+            x = int(self.rng.integers(0, self.width))
+            y = int(self.rng.integers(0, self.height))
 
             if (x, y) not in self.foods:
                 placed += 1

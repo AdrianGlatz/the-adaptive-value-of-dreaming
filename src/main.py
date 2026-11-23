@@ -1,17 +1,17 @@
-import numpy as np
-from simulation import Simulation
-from world import World
-from organism import Organism
+﻿from simulation import create_simulation
 import visualisation
 
-world = World(50, 50)
-world.generate_food(250)
-organisms = [Organism((25, 25)), Organism((10, 10)), Organism((40, 40))]
-simulation = Simulation(world, organisms)
-for step in range(10_000):
-    simulation.step()
 
-    if (step + 1) % 1_000 == 0:
-        print(f"Training: {step + 1} steps")
+def main():
+    simulation = create_simulation()
+    for step in range(10_000):
+        simulation.step()
 
-visualisation.visualize_world(simulation)
+        if (step + 1) % 1_000 == 0:
+            print(f"Training: {step + 1} steps")
+
+    visualisation.visualize_world(simulation)
+
+
+if __name__ == "__main__":
+    main()

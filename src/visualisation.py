@@ -1,7 +1,6 @@
 import pygame
 
 
-
 def draw_simulation(world, organisms, screen):
     for food in world.foods:
         pygame.draw.rect(screen,
