@@ -36,8 +36,8 @@ class Organism:
         self.experience_buffer = deque(maxlen=dqn_config.replay_capacity)
 
     def move(self, direction, world):
-        if self.energy < 0 or not self.alive:
-            return self.reward_config.death
+        if not self.alive or self.energy <= 0:
+            raise RuntimeError("Cannot move a dead organism")
         
         dx, dy = directions[direction]
         new_x = self.x + dx
